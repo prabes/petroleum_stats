@@ -3,6 +3,8 @@ const petroleum_stats_controller = require("../controllers/petroleum_stats_contr
 
 const router = Router();
 
-router.get("/", petroleum_stats_controller.getAll);
+router.get("/index", petroleum_stats_controller.getAll);
+
+router.get("/file_data", petroleum_stats_controller.getAllFromFile);
 
 module.exports = router;

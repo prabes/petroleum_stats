@@ -1,4 +1,4 @@
-const { Sequelize, DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
 const queryInterface = sequelize.getQueryInterface();
@@ -21,3 +21,4 @@ queryInterface.createTable("petroleum_stats", {
 		allowNull: false,
 	},
 });
+
