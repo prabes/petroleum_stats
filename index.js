@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 const db = require("./config/db");
 const data = require("./fileIO");
+const router = require("./routes");
 
 var corsOptions = {
 	origin: "http://localhost:8081",
@@ -19,9 +20,7 @@ db.authenticate()
 		console.log("Can't connect to DB::", err);
 	});
 
-app.get("/", (req, res) => {
-	res.json({ message: "Welcome to petrolprices.com" });
-});
+app.use("/api", router);
 
 // set port
 const PORT = process.env.PORT || 8080;
