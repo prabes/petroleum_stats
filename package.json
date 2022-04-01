@@ -13,6 +13,7 @@
     "bluebird": "^3.7.2",
     "cors": "^2.8.5",
     "express": "^4.17.3",
+    "lodash": "^4.17.21",
     "nodemon": "^2.0.15",
     "sequelize": "^6.17.0",
     "sequelize-cli": "^6.4.1",

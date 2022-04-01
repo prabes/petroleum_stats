@@ -1,6 +1,8 @@
 const PetroleumStat = require("../models/petroleum_stat");
 const fs = require("fs");
 const sequelize = require("../config/db");
+const { Op } = require("sequelize");
+const { groupBy, sum } = require("lodash");
 
 const getAll = async (req, res) => {
 	try {
@@ -46,9 +48,8 @@ const fetchTotalSale = async (req, res) => {
 	}
 };
 
-const topCountry = async (req, res) => {
+const highestSaleCountry = async (req, res) => {
 	try {
-		// fetch rows of a group
 		const saleSum = await PetroleumStat.findAll({
 			attributes: [
 				"country",
@@ -67,9 +68,8 @@ const topCountry = async (req, res) => {
 	}
 };
 
-const lowCountry = async (req, res) => {
+const lowestSaleCountry = async (req, res) => {
 	try {
-		// fetch rows of a group
 		const saleSum = await PetroleumStat.findAll({
 			attributes: [
 				"country",
@@ -88,10 +88,68 @@ const lowCountry = async (req, res) => {
 	}
 };
 
+const averageSale = async (req, res) => {
+	try {
+		let avgSale = await PetroleumStat.findAll({
+			attributes: ["product", "year", "sale"],
+			where: {
+				sale: { [Op.gt]: 0 },
+			},
+			raw: true,
+		});
+		console.log(avgSale);
+		groupedSale = groupBy(avgSale, "product");
+
+		// groupByYear =
+		return res.status(200).send(groupedSale);
+	} catch (error) {
+		return res.status(500).send(error.message);
+	}
+};
+
+const getFourYearAverage = async (req, res) => {
+	let petroleum_stats = await PetroleumStat.findAll({
+		attributes: ["year", "product", "sale", "country"],
+		raw: true,
+	});
+	try {
+		const groupedData = groupBy(petroleum_stats, "product");
+		const finalResult = Object.keys(groupedData).map((product) => {
+			const firstGroup = groupedData[product].filter(
+				(productItem) => productItem.year < 2011 && productItem.year > 2007
+			);
+			const secondGroup = groupedData[product].filter(
+				(productItem) => productItem.year > 2011 && productItem.year > 2007
+			);
+			const firstGroupSale = firstGroup.map((firstG) => firstG.sale);
+			const secondGroupSale = secondGroup.map((secondG) => secondG.sale);
+			const firstGroupAvg = sum(firstGroupSale) / firstGroupSale.length;
+			const secondGroupAvg = sum(secondGroupSale) / secondGroupSale.length;
+			return [
+				{
+					product,
+					range: "2007-2011",
+					avg: firstGroupAvg,
+				},
+				{
+					product,
+					range: "2011-2014",
+					avg: secondGroupAvg,
+				},
+			];
+		});
+		return res.status(200).send(finalResult);
+	} catch (error) {
+		console.log("Error parsing JSON::", error);
+	}
+};
+
 module.exports = {
 	getAll,
 	getAllFromFile,
 	fetchTotalSale,
-	topCountry,
-	lowCountry,
+	highestSaleCountry,
+	lowestSaleCountry,
+	averageSale,
+	getFourYearAverage,
 };
