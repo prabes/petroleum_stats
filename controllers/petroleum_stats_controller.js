@@ -2,7 +2,7 @@ const PetroleumStat = require("../models/petroleum_stat");
 const fs = require("fs");
 const sequelize = require("../config/db");
 const { Op } = require("sequelize");
-const { groupBy, sum } = require("lodash");
+const { groupBy, sumBy, orderBy } = require("lodash");
 
 const getAll = async (req, res) => {
 	try {
@@ -100,7 +100,6 @@ const averageSale = async (req, res) => {
 		console.log(avgSale);
 		groupedSale = groupBy(avgSale, "product");
 
-		// groupByYear =
 		return res.status(200).send(groupedSale);
 	} catch (error) {
 		return res.status(500).send(error.message);
@@ -114,31 +113,29 @@ const getFourYearAverage = async (req, res) => {
 	});
 	try {
 		const groupedData = groupBy(petroleum_stats, "product");
+		const avgData = [];
 		const finalResult = Object.keys(groupedData).map((product) => {
-			const firstGroup = groupedData[product].filter(
-				(productItem) => productItem.year < 2011 && productItem.year > 2007
-			);
-			const secondGroup = groupedData[product].filter(
-				(productItem) => productItem.year > 2011 && productItem.year > 2007
-			);
-			const firstGroupSale = firstGroup.map((firstG) => firstG.sale);
-			const secondGroupSale = secondGroup.map((secondG) => secondG.sale);
-			const firstGroupAvg = sum(firstGroupSale) / firstGroupSale.length;
-			const secondGroupAvg = sum(secondGroupSale) / secondGroupSale.length;
-			return [
-				{
-					product,
-					range: "2007-2011",
-					avg: firstGroupAvg,
-				},
-				{
-					product,
-					range: "2011-2014",
-					avg: secondGroupAvg,
-				},
-			];
+			const minMaxValues = findMinMax(groupedData[product]);
+			const ranges = findRange(minMaxValues[0], minMaxValues[1]);
+			for (i = 0; i < ranges.length - 1; i++) {
+				const minimumRange = ranges[i] + i;
+				const maximumRange = ranges[i + 1] + i;
+				const group = groupedData[product].filter((productItem) => {
+					return (
+						parseInt(productItem.year) >= minimumRange &&
+						parseInt(productItem.year) <= maximumRange
+					);
+				});
+				const groupSale = sumBy(group, (ind) => parseInt(ind.sale));
+				const avgGroupSale = groupSale / group.length;
+				avgData.push({
+					product: product,
+					range: `${minimumRange}-${maximumRange}`,
+					avg: avgGroupSale,
+				});
+			}
 		});
-		return res.status(200).send(finalResult);
+		return res.status(200).send(avgData);
 	} catch (error) {
 		console.log("Error parsing JSON::", error);
 	}
@@ -152,4 +149,23 @@ module.exports = {
 	lowestSaleCountry,
 	averageSale,
 	getFourYearAverage,
+};
+
+const findMinMax = (list) => {
+	const orderedList = orderBy(list, "year", "asc");
+	return [orderedList[0].year, orderedList[orderedList.length - 1].year];
+};
+
+const findRange = (min, max) => {
+	const list = [];
+	for (var i = min; i <= max; i++) {
+		if (i - min == 3 || i - min == 0) {
+			if (i != min) {
+				i = i;
+			}
+			list.push(parseInt(i));
+			min = parseInt(i);
+		}
+	}
+	return list;
 };
